@@ -1,3 +1,10 @@
+/*  Fuzzy K Clustering Algorithms
+ *
+ *  Author: Chao Peng (ANL)
+ *  Date: 10/14/2020
+ *
+ */
+
 #include "FuzzyKClusters.h"
 #include <exception>
 #include <iostream>
@@ -8,9 +15,9 @@ using namespace fkc;
 using namespace Eigen;
 
 
-// =============================================================================
-// KMeans Algorithm
-// =============================================================================
+// =================================================================================================
+//  KMeans Algorithm
+// =================================================================================================
 
 KMeans::KMeans()
 : n_iters(0), variance(0.)
@@ -99,9 +106,15 @@ void KMeans::FormClusters(MatrixXd &clusters, const MatrixXd &data, double q)
 }
 
 
-// =============================================================================
-// KRings Algorithm, extended from KMeans
-// =============================================================================
+// =================================================================================================
+//  KRings Algorithm, extended from KMeans
+//  Reference:
+//      [1] Y. H. Man and I. Gath,
+//          "Detection and separation of ring-shaped clusters using fuzzy clustering,"
+//          in IEEE Transactions on Pattern Analysis and Machine Intelligence,
+//          vol. 16, no. 8, pp. 855-861, Aug. 1994, doi: 10.1109/34.308484.
+// =================================================================================================
+
 KRings::KRings()
 : KMeans()
 {
@@ -195,4 +208,13 @@ void KRings::FormClusters(MatrixXd &clusters, const MatrixXd &data, double q)
         centers.row(i) /= weights.row(i).sum();
     }
 }
+
+
+// =================================================================================================
+//  KEllipses Algorithm, extended from KRings
+//  Reference:
+//      [1] I. Gath and D. Hoory, Pattern Recognition Letters 16 (1995) 727-741,
+//          https://doi.org/10.1016/0167-8655(95)00030-K.
+// =================================================================================================
+// @TODO
 
