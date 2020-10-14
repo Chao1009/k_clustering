@@ -8,9 +8,10 @@ class KMeans
 {
 public:
     KMeans();
-    ~KMeans();
+    virtual ~KMeans();
 
-    Eigen::MatrixXd Fit(const Eigen::MatrixXd &data, int k, double q = 2.0, double epsilon = 1e-4, int max_iters = 1000);
+    virtual Eigen::MatrixXd Fit(const Eigen::MatrixXd &data, int k,
+                                double q = 2.0, double epsilon = 1e-4, int max_iters = 1000);
 
     int NIters() const { return n_iters; }
     double Variance() const { return variance; }
@@ -30,6 +31,22 @@ protected:
     int n_iters;
     double variance;
     Eigen::MatrixXd dists, mems;
+};
+
+class KRings : public KMeans
+{
+public:
+    KRings();
+    ~KRings();
+
+    virtual Eigen::MatrixXd Fit(const Eigen::MatrixXd &data, int k,
+                                double q = 2.0, double epsilon = 1e-4, int max_iters = 1000);
+
+protected:
+    virtual Eigen::MatrixXd Initialize(const Eigen::MatrixXd &data, int k, double q);
+    virtual void Distances(const Eigen::MatrixXd &centroids, const Eigen::MatrixXd &data);
+    virtual void Memberships(double q);
+    virtual void FormClusters(Eigen::MatrixXd &clusters, const Eigen::MatrixXd &data, double q);
 };
 
 }; // namespace fkc

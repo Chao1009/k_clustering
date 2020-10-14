@@ -8,6 +8,10 @@ using namespace fkc;
 using namespace Eigen;
 
 
+// =============================================================================
+// KMeans Algorithm
+// =============================================================================
+
 KMeans::KMeans()
 : n_iters(0), variance(0.)
 {
@@ -60,17 +64,9 @@ MatrixXd KMeans::Initialize(const MatrixXd &data, int k, double q)
 // distance matrix (num_clusters, num_data)
 void KMeans::Distances(const MatrixXd &centroids, const MatrixXd &data)
 {
-    auto euclidean_distance = [] (const MatrixXd &v1, const MatrixXd &v2) {
-        float sqsum = 0.;
-        for (size_t k = 0; k < v1.cols(); ++k) {
-            sqsum += std::pow(v1(0, k) - v2(0, k), 2);
-        }
-        return std::sqrt(sqsum);
-    };
-
     for (size_t i = 0; i < centroids.rows(); ++i) {
         for (size_t j = 0; j < data.rows(); ++j) {
-            dists(i, j) = euclidean_distance(centroids.row(i), data.row(j));
+            dists(i, j) = std::sqrt((centroids.row(i) - data.row(j)).cwiseAbs2().sum());
         }
     }
 }
@@ -100,5 +96,50 @@ void KMeans::FormClusters(MatrixXd &clusters, const MatrixXd &data, double q)
         }
         clusters.row(i) /= weights.row(i).sum();
     }
+}
+
+
+// =============================================================================
+// KMeans Algorithm, extended for KRings
+// =============================================================================
+MatrixXd KRings::Fit(const MatrixXd &data, int k, double q, double epsilon, int max_iters)
+{
+    auto res = Initialize(data, k, q);
+
+    for (n_iters = 0; n_iters < max_iters; ++n_iters) {
+        Distances(res, data);
+        auto old_mems = mems;
+        Memberships(q);
+        FormClusters(res, data, q);
+
+        if ((old_mems - mems).cwiseAbs().maxCoeff() < epsilon) {
+            break;
+        }
+    }
+
+    return res;
+}
+
+// initialize and guess the clusters
+MatrixXd KRings::Initialize(const MatrixXd &data, int k, double q)
+{
+    MatrixXd clusters(k, data.cols());
+    FormClusters(clusters, data, q);
+    return clusters;
+}
+
+// distance matrix (num_clusters, num_data)
+void KRings::Distances(const MatrixXd &centroids, const MatrixXd &data)
+{
+}
+
+// membership matrix (num_clusters, num_data)
+void KRings::Memberships(double q)
+{
+}
+
+// rebuild clusters
+void KRings::FormClusters(MatrixXd &clusters, const MatrixXd &data, double q)
+{
 }
 
