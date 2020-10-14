@@ -45,8 +45,11 @@ public:
 protected:
     virtual Eigen::MatrixXd Initialize(const Eigen::MatrixXd &data, int k, double q);
     virtual void Distances(const Eigen::MatrixXd &centroids, const Eigen::MatrixXd &data);
-    virtual void Memberships(double q);
     virtual void FormClusters(Eigen::MatrixXd &clusters, const Eigen::MatrixXd &data, double q);
+    virtual void FormRadii(Eigen::MatrixXd &clusters, double g);
+
+protected:
+    Eigen::MatrixXd dists_euc;
 };
 
 }; // namespace fkc

@@ -28,8 +28,8 @@ MatrixXd KMeans::Fit(const MatrixXd &data, int k, double q, double epsilon, int 
     auto res = Initialize(data, k, q);
 
     for (n_iters = 0; n_iters < max_iters; ++n_iters) {
-        Distances(res, data);
         auto old_mems = mems;
+        Distances(res, data);
         Memberships(q);
         FormClusters(res, data, q);
 
@@ -66,7 +66,7 @@ void KMeans::Distances(const MatrixXd &centroids, const MatrixXd &data)
 {
     for (size_t i = 0; i < centroids.rows(); ++i) {
         for (size_t j = 0; j < data.rows(); ++j) {
-            dists(i, j) = std::sqrt((centroids.row(i) - data.row(j)).cwiseAbs2().sum());
+            dists(i, j) = (centroids.row(i) - data.row(j)).cwiseAbs2().sum();
         }
     }
 }
@@ -75,7 +75,7 @@ void KMeans::Distances(const MatrixXd &centroids, const MatrixXd &data)
 void KMeans::Memberships(double q)
 {
     // coeffcient-wise operation
-    auto d = dists.array().pow(-2.0/(q - 1.0)).matrix();
+    auto d = dists.array().pow(-1.0/(q - 1.0)).matrix();
 
     for (size_t j = 0; j < d.cols(); ++j) {
         auto dsum = d.col(j).sum();
@@ -100,16 +100,28 @@ void KMeans::FormClusters(MatrixXd &clusters, const MatrixXd &data, double q)
 
 
 // =============================================================================
-// KMeans Algorithm, extended for KRings
+// KRings Algorithm, extended from KMeans
 // =============================================================================
+KRings::KRings()
+: KMeans()
+{
+    // place holder
+}
+
+KRings::~KRings()
+{
+    // place holder
+}
+
 MatrixXd KRings::Fit(const MatrixXd &data, int k, double q, double epsilon, int max_iters)
 {
     auto res = Initialize(data, k, q);
 
     for (n_iters = 0; n_iters < max_iters; ++n_iters) {
-        Distances(res, data);
         auto old_mems = mems;
+        Distances(res, data);
         Memberships(q);
+        FormRadii(res, q);
         FormClusters(res, data, q);
 
         if ((old_mems - mems).cwiseAbs().maxCoeff() < epsilon) {
@@ -123,23 +135,64 @@ MatrixXd KRings::Fit(const MatrixXd &data, int k, double q, double epsilon, int 
 // initialize and guess the clusters
 MatrixXd KRings::Initialize(const MatrixXd &data, int k, double q)
 {
-    MatrixXd clusters(k, data.cols());
-    FormClusters(clusters, data, q);
+    MatrixXd clusters(k, data.cols() + 1);
+    auto centers = clusters.leftCols(data.cols());
+
+    // call KMeans to help initialization
+    KMeans fkm;
+    centers = fkm.Fit(data, k, q, 1e-4, 5);
+
+    dists.resize(k, data.rows());
+    dists_euc = fkm.GetDistances().cwiseSqrt();
+    mems = fkm.GetMemberships();
+    FormRadii(clusters, q);
     return clusters;
 }
 
 // distance matrix (num_clusters, num_data)
 void KRings::Distances(const MatrixXd &centroids, const MatrixXd &data)
 {
+    auto const centers = centroids.leftCols(centroids.cols() - 1);
+    auto const radii = centroids.rightCols(1);
+
+    for (size_t i = 0; i < centroids.rows(); ++i) {
+        for (size_t j = 0; j < data.rows(); ++j) {
+            dists_euc(i, j) = std::sqrt((centers.row(i) - data.row(j)).cwiseAbs2().sum());
+            dists(i, j) = std::pow(dists_euc(i, j) - radii(i, 0), 2);
+        }
+    }
 }
 
-// membership matrix (num_clusters, num_data)
-void KRings::Memberships(double q)
+// rebuild clusters radii
+void KRings::FormRadii(MatrixXd &clusters, double q)
 {
+    auto radii = clusters.rightCols(1);
+    auto weights = mems.array().pow(q).matrix();
+
+    for (size_t i = 0; i < weights.rows(); ++i) {
+        radii(i, 0) = 0;
+        for (size_t j = 0; j < weights.cols(); ++j) {
+            radii(i, 0) += weights(i, j)*dists_euc(i, j);
+        }
+        radii(i, 0) /= weights.row(i).sum();
+    }
 }
 
-// rebuild clusters
+// rebuild clusters centers
 void KRings::FormClusters(MatrixXd &clusters, const MatrixXd &data, double q)
 {
+    auto centers = clusters.leftCols(data.cols());
+    const auto &radii = clusters.rightCols(1);
+    auto weights = mems.array().pow(q).matrix();
+
+    for (size_t i = 0; i < weights.rows(); ++i) {
+        MatrixXd icenter = centers.row(i);
+        centers.row(i) *= 0;
+        for (size_t j = 0; j < weights.cols(); ++j) {
+            double scale = radii(i, 0)/dists_euc(i, j);
+            centers.row(i) += weights(i, j)*(data.row(j) - (data.row(j) - icenter)*scale);
+        }
+        centers.row(i) /= weights.row(i).sum();
+    }
 }
 
