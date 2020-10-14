@@ -52,4 +52,5 @@ protected:
     Eigen::MatrixXd dists_euc;
 };
 
-}; // namespace fkc
+} // namespace fkc
+
