@@ -12,6 +12,8 @@ public:
 
     virtual Eigen::MatrixXd Fit(const Eigen::MatrixXd &data, int k,
                                 double q = 2.0, double epsilon = 1e-4, int max_iters = 1000);
+    virtual Eigen::MatrixXd Fit(const Eigen::MatrixXd &data, const Eigen::MatrixXd &clusters,
+                                double q = 2.0, double epsilon = 1e-4, int max_iters = 1000);
 
     int NIters() const { return n_iters; }
     double Variance() const { return variance; }
@@ -22,7 +24,7 @@ public:
     Eigen::MatrixXd &GetMemberships() { return mems; }
 
 protected:
-    virtual Eigen::MatrixXd Initialize(const Eigen::MatrixXd &data, int k, double q);
+    virtual Eigen::MatrixXd RandomInit(const Eigen::MatrixXd &data, int k, double q);
     virtual void Distances(const Eigen::MatrixXd &centroids, const Eigen::MatrixXd &data);
     virtual void Memberships(double q);
     virtual void FormClusters(Eigen::MatrixXd &clusters, const Eigen::MatrixXd &data, double q);
@@ -41,9 +43,12 @@ public:
 
     virtual Eigen::MatrixXd Fit(const Eigen::MatrixXd &data, int k,
                                 double q = 2.0, double epsilon = 1e-4, int max_iters = 1000);
+    virtual Eigen::MatrixXd Fit(const Eigen::MatrixXd &data, const Eigen::MatrixXd &clusters,
+                                double q = 2.0, double epsilon = 1e-4, int max_iters = 1000);
 
 protected:
-    virtual Eigen::MatrixXd Initialize(const Eigen::MatrixXd &data, int k, double q);
+    virtual Eigen::MatrixXd RandomInit(const Eigen::MatrixXd &data, int k, double q);
+    virtual Eigen::MatrixXd RandomInit(const Eigen::MatrixXd &data, const Eigen::MatrixXd &clusters, double q);
     virtual void Distances(const Eigen::MatrixXd &centroids, const Eigen::MatrixXd &data);
     virtual void FormClusters(Eigen::MatrixXd &clusters, const Eigen::MatrixXd &data, double q);
     virtual void FormRadii(Eigen::MatrixXd &clusters, double g);

@@ -1,5 +1,6 @@
 #include "FuzzyKClusters.h"
 #include <iostream>
+#include <iomanip>
 #include <random>
 #include <cmath>
 
@@ -39,7 +40,11 @@ void test_fkm()
         }
     }
 
+    std::cout << "FKM test: k input" << std::endl;
     std::cout << fkm.Fit(data, 4, 2.0, 1e-6) << std::endl;
+    std::cout << fkm.NIters() << std::endl;
+    std::cout << "FKM test: cluster center input" << std::endl;
+    std::cout << fkm.Fit(data, centroids, 2.0, 1e-6) << std::endl;
     std::cout << fkm.NIters() << std::endl;
 }
 
@@ -67,8 +72,12 @@ void test_fkr()
         }
     }
 
+    std::cout << "FKR test: k input" << std::endl;
     std::cout << fkr.Fit(data, 4, 2.0, 1e-6) << std::endl;
-    std::cout << fkr.NIters() << std::endl;
+    std::cout << fkr.NIters() << ": " << fkr.Variance() << std::endl;
+    std::cout << "FKR test: cluster center input" << std::endl;
+    std::cout << fkr.Fit(data, centroids.leftCols(2), 2.0, 1e-6) << std::endl;
+    std::cout << fkr.NIters() << ": " << fkr.Variance() << std::endl;
 }
 
 int main(int argc, char *argv[])

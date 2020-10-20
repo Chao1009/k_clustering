@@ -10,6 +10,8 @@
 #include <iostream>
 #include <cmath>
 
+// exact zero value for distances may cause nan value in the end
+#define DIST_TOL 1e-32
 
 using namespace fkc;
 using namespace Eigen;
@@ -32,7 +34,17 @@ KMeans::~KMeans()
 
 MatrixXd KMeans::Fit(const MatrixXd &data, int k, double q, double epsilon, int max_iters)
 {
-    auto res = Initialize(data, k, q);
+    return Fit(data, RandomInit(data, k, q), q, epsilon, max_iters);
+}
+
+MatrixXd KMeans::Fit(const MatrixXd &data, const MatrixXd &clusters, double q, double epsilon, int max_iters)
+{
+    // prepare matrices
+    int k = clusters.rows();
+    dists.resize(k, data.rows());
+    mems.resize(k, data.rows());
+
+    auto res = clusters;
 
     for (n_iters = 0; n_iters < max_iters; ++n_iters) {
         auto old_mems = mems;
@@ -40,7 +52,8 @@ MatrixXd KMeans::Fit(const MatrixXd &data, int k, double q, double epsilon, int 
         Memberships(q);
         FormClusters(res, data, q);
 
-        if ((old_mems - mems).cwiseAbs().maxCoeff() < epsilon) {
+        variance = (old_mems - mems).cwiseAbs().maxCoeff();
+        if (variance < epsilon) {
             break;
         }
     }
@@ -49,7 +62,7 @@ MatrixXd KMeans::Fit(const MatrixXd &data, int k, double q, double epsilon, int 
 }
 
 // initialize and guess the clusters
-MatrixXd KMeans::Initialize(const MatrixXd &data, int k, double q)
+MatrixXd KMeans::RandomInit(const MatrixXd &data, int k, double q)
 {
     // resize matrices
     dists.resize(k, data.rows());
@@ -73,7 +86,7 @@ void KMeans::Distances(const MatrixXd &centroids, const MatrixXd &data)
 {
     for (int i = 0; i < centroids.rows(); ++i) {
         for (int j = 0; j < data.rows(); ++j) {
-            dists(i, j) = (centroids.row(i) - data.row(j)).cwiseAbs2().sum();
+            dists(i, j) = std::max(DIST_TOL, (centroids.row(i) - data.row(j)).cwiseAbs2().sum());
         }
     }
 }
@@ -128,7 +141,22 @@ KRings::~KRings()
 
 MatrixXd KRings::Fit(const MatrixXd &data, int k, double q, double epsilon, int max_iters)
 {
-    auto res = Initialize(data, k, q);
+    return KRings::Fit(data, RandomInit(data, k, q), q, epsilon, max_iters);
+}
+
+MatrixXd KRings::Fit(const MatrixXd &data, const MatrixXd &clusters, double q, double epsilon, int max_iters)
+{
+    MatrixXd res;
+
+    if ((clusters.cols() == data.cols() + 1) && (clusters.rightCols(1).sum() > 0)) {
+        int k = clusters.rows();
+        dists.resize(k, data.rows());
+        dists_euc.resize(k, data.rows());
+        mems.resize(k, data.rows());
+        res = clusters;
+    } else {
+        res = RandomInit(data, clusters, q);
+    }
 
     for (n_iters = 0; n_iters < max_iters; ++n_iters) {
         auto old_mems = mems;
@@ -137,7 +165,8 @@ MatrixXd KRings::Fit(const MatrixXd &data, int k, double q, double epsilon, int 
         FormRadii(res, q);
         FormClusters(res, data, q);
 
-        if ((old_mems - mems).cwiseAbs().maxCoeff() < epsilon) {
+        variance = (old_mems - mems).cwiseAbs().maxCoeff();
+        if (variance < epsilon) {
             break;
         }
     }
@@ -146,14 +175,32 @@ MatrixXd KRings::Fit(const MatrixXd &data, int k, double q, double epsilon, int 
 }
 
 // initialize and guess the clusters
-MatrixXd KRings::Initialize(const MatrixXd &data, int k, double q)
+MatrixXd KRings::RandomInit(const MatrixXd &data, int k, double q)
 {
     MatrixXd clusters(k, data.cols() + 1);
     auto centers = clusters.leftCols(data.cols());
 
     // call KMeans to help initialization
     KMeans fkm;
-    centers = fkm.Fit(data, k, q, 1e-4, 5);
+    centers = fkm.Fit(data, k, q, 1e-4, 10);
+
+    dists.resize(k, data.rows());
+    dists_euc = fkm.GetDistances().cwiseSqrt();
+    mems = fkm.GetMemberships();
+    FormRadii(clusters, q);
+    return clusters;
+}
+
+// initialize and guess the clusters
+MatrixXd KRings::RandomInit(const MatrixXd &data, const MatrixXd &initCenters, double q)
+{
+    int k = initCenters.rows();
+    MatrixXd clusters(k, data.cols() + 1);
+    auto centers = clusters.leftCols(data.cols());
+
+    // call KMeans to help initialization
+    KMeans fkm;
+    centers = fkm.Fit(data, initCenters, q, 1e-4, 10);
 
     dists.resize(k, data.rows());
     dists_euc = fkm.GetDistances().cwiseSqrt();
@@ -170,8 +217,8 @@ void KRings::Distances(const MatrixXd &centroids, const MatrixXd &data)
 
     for (int i = 0; i < centroids.rows(); ++i) {
         for (int j = 0; j < data.rows(); ++j) {
-            dists_euc(i, j) = std::sqrt((centers.row(i) - data.row(j)).cwiseAbs2().sum());
-            dists(i, j) = std::pow(dists_euc(i, j) - radii(i, 0), 2);
+            dists_euc(i, j) = std::max(DIST_TOL, std::sqrt((centers.row(i) - data.row(j)).cwiseAbs2().sum()));
+            dists(i, j) = std::max(DIST_TOL, std::pow(dists_euc(i, j) - radii(i, 0), 2));
         }
     }
 }
