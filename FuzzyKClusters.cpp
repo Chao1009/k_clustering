@@ -174,6 +174,23 @@ MatrixXd KRings::Fit(const MatrixXd &data, const MatrixXd &clusters, double q, d
     return res;
 }
 
+// ring fit quality
+MatrixXd KRings::Quality(const MatrixXd &data, const MatrixXd &clusters, const MatrixXd &memberships)
+{
+    auto const centers = clusters.leftCols(clusters.cols() - 1);
+    auto const radii = clusters.rightCols(1);
+    MatrixXd res(clusters.rows(), 1);
+    for (int i = 0; i < clusters.rows(); ++i) {
+        res(i, 0) = 0;
+        for (int j = 0; j < data.rows(); ++j) {
+            double rdist = std::sqrt((centers.row(i) - data.row(j)).cwiseAbs2().sum()) - radii(i, 0);
+            res(i, 0) += std::pow(rdist * memberships(i, j), 2);
+        }
+        res(i, 0) = std::sqrt(res(i, 0) / (double) data.rows());
+    }
+    return res;
+}
+
 // initialize and guess the clusters
 MatrixXd KRings::RandomInit(const MatrixXd &data, int k, double q)
 {

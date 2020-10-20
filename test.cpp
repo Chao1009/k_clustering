@@ -73,17 +73,22 @@ void test_fkr()
     }
 
     std::cout << "FKR test: k input" << std::endl;
-    std::cout << fkr.Fit(data, 4, 2.0, 1e-6) << std::endl;
+    auto fit = fkr.Fit(data, 4, 2.0, 1e-6);
+    std::cout << fit << std::endl;
     std::cout << fkr.NIters() << ": " << fkr.Variance() << std::endl;
+    std::cout << fkr.Quality(data, fit, fkr.GetMemberships()) << std::endl;
+
     std::cout << "FKR test: cluster center input" << std::endl;
-    std::cout << fkr.Fit(data, centroids.leftCols(2), 2.0, 1e-6) << std::endl;
+    fit = fkr.Fit(data, centroids.leftCols(2), 2.0, 1e-6);
+    std::cout << fit << std::endl;
     std::cout << fkr.NIters() << ": " << fkr.Variance() << std::endl;
+    std::cout << fkr.Quality(data, fit, fkr.GetMemberships()) << std::endl;
 }
 
 int main(int argc, char *argv[])
 {
-    block_assignment();
-    test_fkm();
+    // block_assignment();
+    // test_fkm();
     test_fkr();
     return 0;
 }

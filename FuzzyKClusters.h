@@ -46,6 +46,9 @@ public:
     virtual Eigen::MatrixXd Fit(const Eigen::MatrixXd &data, const Eigen::MatrixXd &clusters,
                                 double q = 2.0, double epsilon = 1e-4, int max_iters = 1000);
 
+    static Eigen::MatrixXd Quality(const Eigen::MatrixXd &data, const Eigen::MatrixXd &clusters,
+                                   const Eigen::MatrixXd &memberships);
+
 protected:
     virtual Eigen::MatrixXd RandomInit(const Eigen::MatrixXd &data, int k, double q);
     virtual Eigen::MatrixXd RandomInit(const Eigen::MatrixXd &data, const Eigen::MatrixXd &clusters, double q);
